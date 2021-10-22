@@ -1,0 +1,69 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+parameters:
+- name: ls_sql_name
+  displayName: LS SQL NAME
+  type: string
+- name: ls_storage_name
+  displayName: LS STORAGE NAME
+  type: string
+- name: table_name
+  displayName: Table Name
+  type: string
+- name: blob_file_name
+  displayName: BLOB FILE NAME
+  type: string
+- name: table_schema
+  displayName: TABLE SCHEMA
+  type: string
+
+
+variables:
+  # Working Directory
+  workingDirectory: '$(System.DefaultWorkingDirectory)'
+
+trigger:
+- main
+
+stages:
+- stage: Deploy
+  displayName: Deploy ADF
+
+  jobs:
+  - deployment: Deploy
+    displayName: Deploy ADF
+    environment: 'ADF Testecosomos'
+    pool:
+      vmImage: 'ubuntu-latest'
+
+    strategy:
+      runOnce:
+        deploy:
+
+          steps:
+          - checkout: self
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.x'
+              addToPath: true
+              architecture: 'x64'
+
+          - task: CmdLine@2
+            inputs:
+              script: |
+                conda config --add channels "Microsoft"
+                pip install azure-identity
+                pip install azure-mgmt-resource
+                pip install azure-mgmt-datafactory
+                pip install datetime
+
+          - task: PythonScript@0
+            inputs:
+              scriptSource: 'filePath'
+              scriptPath: '$(workingDirectory)/main.py'
+              arguments: '$(SubscriptionId) $(RgName) $(AdfName) $(ClientId) $(ClientSecret) $(TenantId) ${{ parameters.ls_sql_name }} ${{ parameters.ls_storage_name }} ${{ parameters.table_name }} ${{ parameters.blob_file_name }} ${{ parameters.table_schema }}'
+
+
+
